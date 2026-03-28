@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DayPlan">
+<title>DayPlan</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f5;--bg3:#e8e8e8;
+  --text:#111;--text2:#666;--text3:#aaa;
+  --border:#e0e0e0;--green:#1D9E75;--red:#D85A30;--amber:#EF9F27;
+  --card:#fff;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#111;--bg2:#1c1c1e;--bg3:#2c2c2e;
+    --text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;
+    --border:#38383a;--card:#1c1c1e;
+  }
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:90px}
+.screen.active{display:flex}
+.topbar{padding:20px 20px 8px;display:flex;justify-content:space-between;align-items:flex-start}
+.topbar-title{font-size:30px;font-weight:700;letter-spacing:-0.5px}
+.topbar-date{font-size:13px;color:var(--text2);margin-top:3px}
+.streak-box{text-align:right}
+.streak-num{font-size:24px;font-weight:700}
+.streak-label{font-size:11px;color:var(--text2)}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px}
+.stat{background:var(--bg2);border-radius:14px;padding:12px 8px;text-align:center}
+.stat-n{font-size:22px;font-weight:700}
+.stat-l{font-size:11px;color:var(--text2);margin-top:2px}
+.prog-wrap{padding:0 16px 12px}
+.prog-label{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:6px}
+.prog-bar{height:8px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:var(--green);border-radius:99px;transition:width .4s}
+.motiv{margin:0 16px 12px;background:var(--bg2);border-radius:14px;padding:14px;border-left:3px solid var(--green)}
+.motiv p{font-size:13px;line-height:1.65;color:var(--text)}
+.missed-banner{margin:0 16px 10px;background:#FCEBEB;border-radius:12px;padding:12px 14px;border-left:3px solid var(--red)}
+.missed-banner p{font-size:13px;color:#A32D2D;font-weight:500;line-height:1.5}
+.sec-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:4px 16px 8px}
+.task-item{margin:0 16px 8px;background:var(--card);border-radius:14px;border:0.5px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .1s,opacity .2s}
+.task-item:active{transform:scale(0.98)}
+.task-item.done{opacity:.4}
+.task-item.done .task-name{text-decoration:line-through}
+.task-item.overdue{border-color:var(--red);border-width:1px}
+.chk{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;transition:all .2s;color:transparent}
+.chk.on{background:var(--green);border-color:var(--green);color:#fff}
+.task-name{font-size:15px;font-weight:500;line-height:1.3}
+.task-meta{font-size:12px;color:var(--text2);margin-top:3px}
+.task-badge{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:600;flex-shrink:0;white-space:nowrap}
+.b-now{background:#E1F5EE;color:#0F6E56}
+.b-up{background:#FAEEDA;color:#854F0B}
+.b-done{background:#F1EFE8;color:#5F5E5A}
+.b-miss{background:#FCEBEB;color:#A32D2D}
+.del-btn{background:none;border:none;color:var(--text3);font-size:20px;padding:2px 6px;cursor:pointer;border-radius:8px;line-height:1}
+.del-btn:active{background:var(--bg3)}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-state .icon{font-size:44px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.7}
+.add-fab{position:fixed;bottom:92px;right:20px;width:58px;height:58px;border-radius:50%;background:var(--green);border:none;color:#fff;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(29,158,117,.45);z-index:99;transition:transform .15s}
+.add-fab:active{transform:scale(0.92)}
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--bg);border-top:0.5px solid var(--border);display:flex;z-index:100;padding:10px 0 22px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:transparent;cursor:pointer;padding:4px 0}
+.tab-icon{font-size:22px}
+.tab span{font-size:10px;color:var(--text3)}
+.tab.active span{color:var(--green)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;flex-direction:column;justify-content:flex-end}
+.modal{background:var(--bg);border-radius:24px 24px 0 0;padding:20px 20px 36px;max-height:92vh;overflow-y:auto}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:16px}
+.inp-label{font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.inp{width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:13px 14px;font-size:15px;color:var(--text);outline:none;font-family:inherit;resize:none}
+.inp:focus{border-color:var(--green);border-width:1px}
+.inp-row{margin-bottom:14px}
+.inp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-primary{width:100%;padding:16px;border-radius:14px;background:var(--green);border:none;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:10px;font-family:inherit;transition:opacity .2s;letter-spacing:.01em}
+.btn-primary:active{opacity:.8}
+.btn-primary:disabled{opacity:.5;cursor:default}
+.btn-ghost{width:100%;padding:14px;border-radius:14px;background:var(--bg2);border:0.5px solid var(--border);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:8px;font-family:inherit}
+.ai-loading{display:flex;align-items:center;gap:10px;padding:13px 14px;background:var(--bg2);border-radius:12px;font-size:13px;color:var(--text2);margin-top:10px}
+.dots span{animation:blink 1.2s infinite;display:inline-block}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
+.preview-task{background:var(--bg2);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.preview-dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex-shrink:0}
+.preview-name{font-size:14px;font-weight:500}
+.preview-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.guilt-wrap{background:var(--bg);border-radius:24px 24px 0 0;padding:28px 24px 40px;text-align:center}
+.guilt-emoji{font-size:52px;margin-bottom:14px}
+.guilt-title{font-size:22px;font-weight:700;color:var(--red);margin-bottom:10px}
+.guilt-msg{font-size:14px;color:var(--text2);line-height:1.75;margin-bottom:24px;padding:0 8px}
+.btn-red{width:100%;padding:16px;border-radius:14px;background:var(--red);border:none;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
+.week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 16px 16px}
+.wday{display:flex;flex-direction:column;align-items:center;gap:5px}
+.wday-l{font-size:11px;color:var(--text3)}
+.wday-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--bg2);color:var(--text3)}
+.wday-dot.full{background:var(--green);color:#fff}
+.wday-dot.part{background:var(--amber);color:#fff}
+.wday-dot.ring{border:2.5px solid var(--green)}
+.bar-section{padding:0 16px 16px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-lbl{font-size:12px;color:var(--text2);width:26px;flex-shrink:0}
+.bar-out{flex:1;height:18px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.bar-in{height:100%;border-radius:99px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:#fff;font-weight:700;min-width:2px;transition:width .5s}
+.tip-card{background:var(--bg2);border-radius:14px;padding:14px 16px;margin:0 16px 10px}
+.tip-title{font-size:15px;font-weight:600;margin-bottom:5px}
+.tip-body{font-size:13px;color:var(--text2);line-height:1.65}
+</style>
+</head>
+<body>
+
+<!-- TODAY SCREEN -->
+<div id="screen-today" class="screen active">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Today</div>
+      <div class="topbar-date" id="today-date"></div>
+    </div>
+    <div class="streak-box">
+      <div class="streak-num" id="streak-display">🔥 0</div>
+      <div class="streak-label">day streak</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-n" id="stat-done">0/0</div><div class="stat-l">done</div></div>
+    <div class="stat"><div class="stat-n" id="stat-pct">0%</div><div class="stat-l">complete</div></div>
+    <div class="stat"><div class="stat-n" id="stat-wasted" style="color:var(--red)">0h</div><div class="stat-l">lost</div></div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-label"><span>Progress</span><span id="prog-label">0%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="motiv"><p id="motiv-text">Tap + to add your plan for tonight.</p></div>
+  <div id="missed-banner" class="missed-banner" style="display:none"><p id="missed-text"></p></div>
+  <div class="sec-label">Your tasks</div>
+  <div id="tasks-list"></div>
+</div>
+
+<!-- PROGRESS SCREEN -->
+<div id="screen-progress" class="screen">
+  <div class="topbar"><div class="topbar-title">Progress</div></div>
+  <div class="sec-label">This week</div>
+  <div class="week-row" id="week-row"></div>
+  <div class="sec-label">Tasks completed</div>
+  <div class="bar-section" id="bar-tasks"></div>
+  <div class="sec-label">Scroll time lost (hrs)</div>
+  <div class="bar-section" id="bar-wasted"></div>
+</div>
+
+<!-- TIPS SCREEN -->
+<div id="screen-tips" class="screen">
+  <div class="topbar"><div class="topbar-title">Tips</div></div>
+  <div class="tip-card"><div class="tip-title">Open this app first</div><div class="tip-body">Before Instagram. Before TikTok. Before anything. The moment you get home — open this. That one second is the entire habit.</div></div>
+  <div class="tip-card"><div class="tip-title">The 2-minute rule</div><div class="tip-body">Don't think about finishing the workout. Just start for 2 minutes. Put the bands on. That's it. You'll almost always keep going — starting is the only hard part.</div></div>
+  <div class="tip-card"><div class="tip-title">Schedule scroll time</div><div class="tip-body">Add "phone time 30 min" as an actual task at 10:30pm. Knowing it's coming makes it easier to delay it. Unscheduled scrolling turns into 2 hours gone.</div></div>
+  <div class="tip-card"><div class="tip-title">3 tasks max</div><div class="tip-body">You have 5 hours. Don't add 8 tasks. 3 real ones done beats 8 abandoned ones every time. The AI will tell you if you're overloading.</div></div>
+  <div class="tip-card" style="border-left:3px solid var(--green)"><div class="tip-title">Save to your iPhone home screen</div><div class="tip-body">Open this page in Safari → tap the Share button (box with arrow) → "Add to Home Screen" → Done. It will look and work like a real app on your phone.</div></div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchScreen('today')" id="tab-today">
+    <div class="tab-icon">📋</div>
+    <span>Today</span>
+  </button>
+  <button class="tab" onclick="switchScreen('progress')" id="tab-progress">
+    <div class="tab-icon">📊</div>
+    <span>Progress</span>
+  </button>
+  <button class="tab" onclick="switchScreen('tips')" id="tab-tips">
+    <div class="tab-icon">💡</div>
+    <span>Tips</span>
+  </button>
+</div>
+
+<button class="add-fab" id="add-fab" onclick="openAdd()">+</button>
+
+<!-- ADD MODAL -->
+<div id="add-modal" class="modal-bg" style="display:none" onclick="bgClose(event,'add-modal')">
+  <div class="modal">
+    <h2>Add tasks with AI ✨</h2>
+    <div class="inp-row">
+      <label class="inp-label">What do you want to do tonight?</label>
+      <textarea id="ai-input" class="inp" rows="3" placeholder="e.g. workout with bands, cook rice and chicken, finish assignment, reply to emails, read for 20 min..."></textarea>
+    </div>
+    <div class="inp-row">
+      <label class="inp-label">Available from / until</label>
+      <div class="inp-grid">
+        <input type="time" id="t-from" class="inp" value="19:00">
+        <input type="time" id="t-until" class="inp" value="23:30">
+      </div>
+    </div>
+    <div id="ai-loading" class="ai-loading" style="display:none">
+      <div class="dots"><span>●</span><span>●</span><span>●</span></div>
+      <span>AI is building your schedule...</span>
+    </div>
+    <div id="ai-preview" style="display:none">
+      <div class="sec-label" style="padding:12px 0 8px">Suggested schedule</div>
+      <div id="preview-list"></div>
+    </div>
+    <button class="btn-primary" id="gen-btn" onclick="runAI()">✨ Generate my schedule</button>
+    <button class="btn-ghost" onclick="closeModal('add-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- GUILT MODAL -->
+<div id="guilt-modal" class="modal-bg" style="display:none">
+  <div class="guilt-wrap">
+    <div class="guilt-emoji">😤</div>
+    <div class="guilt-title" id="guilt-title">You missed this.</div>
+    <div class="guilt-msg" id="guilt-msg">You set this task. You had time. You chose not to.</div>
+    <button class="btn-red" onclick="closeModal('guilt-modal')">I'll do better tomorrow</button>
+  </div>
+</div>
+
+<script>
+const GUILT=[
+  ["You had one job.","You set this task yourself. No one forced you. You knew what had to be done and picked your phone instead. That gap between who you are and who you want to be? This is what it looks like."],
+  ["Seriously?","You came home, got comfortable, and let another evening slip. This is the exact pattern you said you wanted to break. Was it worth it?"],
+  ["This is why nothing changes.","Motivation doesn't build habits. Doing the thing when you don't feel like it does. You had time. You had energy. You just didn't start."],
+  ["Another missed task.","You're not failing because life is hard. You're failing because you keep choosing the easy option. The workout didn't do itself."],
+  ["You ghosted your own plan.","The version of you that scheduled this wanted better. Don't let that person down two nights in a row."],
+  ["Classic.","Set task. Ignore task. Feel bad about task. That cycle ends when you decide it ends — and tonight was the night to decide."],
+];
+
+function gs(k,d){try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}}
+function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+
+const todayStr=new Date().toDateString();
+let S=gs('dp3',{date:'',tasks:[],streak:0,history:[],wasted:0});
+
+if(S.date!==todayStr){
+  const yest=new Date(Date.now()-86400000).toDateString();
+  const wasYest=S.date===yest;
+  const allDone=(S.tasks||[]).length>0&&(S.tasks||[]).every(t=>t.done);
+  const newStreak=(wasYest&&allDone)?(S.streak||0)+1:(allDone?(S.streak||0)+1:0);
+  S={date:todayStr,tasks:[],streak:newStreak,wasted:0,
+    history:[...(S.history||[]).slice(-13),{date:S.date||todayStr,total:(S.tasks||[]).length,done:(S.tasks||[]).filter(t=>t.done).length,wasted:S.wasted||0}]
+  };
+  ss('dp3',S);
+}
+
+function save(){ss('dp3',S);}
+function now(){return new Date().getHours()*60+new Date().getMinutes();}
+function fmtT(min){const h=Math.floor(min/60),m=min%60,p=h>=12?'PM':'AM',hh=h%12||12;return `${hh}:${m.toString().padStart(2,'0')} ${p}`;}
+
+function badge(t){
+  if(!t.startMin)return {l:'',c:''};
+  const n=now(),e=t.startMin+(t.dur||30);
+  if(t.done)return {l:'Done',c:'b-done'};
+  if(n>e)return {l:'Missed',c:'b-miss'};
+  if(n>=t.startMin&&n<=e)return {l:'Now',c:'b-now'};
+  return {l:'Up next',c:'b-up'};
+}
+
+function getWasted(){
+  const n=now(),start=19*60;
+  if(n<start)return 0;
+  const elapsed=(n-start)/60;
+  const busy=S.tasks.filter(t=>t.done).reduce((a,t)=>a+(t.dur||30)/60,0);
+  return Math.max(0,Math.round(Math.max(0,elapsed-busy)*10)/10);
+}
+
+function getMotiv(){
+  const done=S.tasks.filter(t=>t.done).length,total=S.tasks.length;
+  if(total===0)return "Add your tasks above. Your evening starts now.";
+  if(done===total)return "ALL DONE. 💪 Streak alive. Sleep knowing you won tonight.";
+  if(done===0)return "Not one task done yet. Every minute you wait is a minute you can't get back.";
+  return `${done}/${total} done. Don't stop now. Finish what you started.`;
+}
+
+function renderToday(){
+  document.getElementById('today-date').textContent=new Date().toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('streak-display').textContent='🔥 '+(S.streak||0);
+  const done=S.tasks.filter(t=>t.done).length,total=S.tasks.length;
+  const pct=total>0?Math.round(done/total*100):0;
+  document.getElementById('stat-done').textContent=done+'/'+total;
+  document.getElementById('stat-pct').textContent=pct+'%';
+  const w=getWasted();S.wasted=w;
+  document.getElementById('stat-wasted').textContent=w+'h';
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=pct+'%';
+  document.getElementById('motiv-text').textContent=getMotiv();
+  const missed=S.tasks.filter(t=>!t.done&&t.startMin&&now()>(t.startMin+(t.dur||30)));
+  const mb=document.getElementById('missed-banner');
+  if(missed.length>0){mb.style.display='block';document.getElementById('missed-text').textContent=`⚠️ ${missed.length} overdue: ${missed.map(t=>t.name).join(', ')}`;}
+  else mb.style.display='none';
+  const list=document.getElementById('tasks-list');
+  if(S.tasks.length===0){
+    list.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>No tasks yet.<br>Tap <strong>+</strong> to build tonight's plan.</p></div>`;
+    return;
+  }
+  list.innerHTML='';
+  [...S.tasks].sort((a,b)=>(a.startMin||0)-(b.startMin||0)).forEach(t=>{
+    const b=badge(t);
+    const div=document.createElement('div');
+    div.className='task-item'+(t.done?' done':'')+(b.l==='Missed'?' overdue':'');
+    div.innerHTML=`
+      <div class="chk${t.done?' on':''}" onclick="toggle('${t.id}',event)">${t.done?'✓':''}</div>
+      <div style="flex:1;min-width:0" onclick="toggle('${t.id}',event)">
+        <div class="task-name">${t.name}</div>
+        <div class="task-meta">${t.startMin?fmtT(t.startMin)+' · ':''} ${t.dur||30} min</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        ${b.l?`<span class="task-badge ${b.c}">${b.l}</span>`:''}
+        <button class="del-btn" onclick="del('${t.id}',event)">×</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function toggle(id,e){
+  e.stopPropagation();
+  const t=S.tasks.find(x=>x.id===id);if(!t)return;
+  if(!t.done){
+    const b=badge(t);
+    if(b.l==='Missed'){
+      const g=GUILT[Math.floor(Math.random()*GUILT.length)];
+      document.getElementById('guilt-title').textContent=g[0];
+      document.getElementById('guilt-msg').textContent=g[1];
+      document.getElementById('guilt-modal').style.display='flex';
+    }
+  }
+  t.done=!t.done;save();renderToday();
+}
+
+function del(id,e){e.stopPropagation();S.tasks=S.tasks.filter(x=>x.id!==id);save();renderToday();}
+
+function openAdd(){
+  document.getElementById('ai-input').value='';
+  document.getElementById('ai-preview').style.display='none';
+  document.getElementById('ai-loading').style.display='none';
+  document.getElementById('add-modal').style.display='flex';
+}
+
+function closeModal(id){document.getElementById(id).style.display='none';}
+function bgClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+
+async function runAI(){
+  const input=document.getElementById('ai-input').value.trim();
+  if(!input){alert('Tell me what you want to do tonight first.');return;}
+  const from=document.getElementById('t-from').value||'19:00';
+  const until=document.getElementById('t-until').value||'23:30';
+  const [fh,fm]=from.split(':').map(Number);
+  const [uh,um]=until.split(':').map(Number);
+  const fromMin=fh*60+fm, untilMin=uh*60+um;
+  document.getElementById('ai-loading').style.display='flex';
+  document.getElementById('ai-preview').style.display='none';
+  document.getElementById('gen-btn').disabled=true;
+  const prompt=`You are a strict, realistic scheduling assistant. The user is free from ${from} to ${until} tonight (${fromMin} to ${untilMin} minutes since midnight).
+User wants to do: "${input}"
+Create a schedule. Each task: name, startMin (minutes since midnight, e.g. 7pm=1140), dur (minutes).
+Rules: Be realistic. Don't overfill. Max 5 tasks. Start first task at ${fromMin}. Leave 10 min gaps. Total must fit before ${untilMin}.
+RESPOND ONLY WITH RAW JSON ARRAY. No markdown. No explanation. No backticks. Just the array.
+Example: [{"name":"Home workout","startMin":1140,"dur":35},{"name":"Cook dinner","startMin":1195,"dur":50}]`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const raw=(data.content?.find(b=>b.type==='text')?.text||'').replace(/```json|```/g,'').trim();
+    const tasks=JSON.parse(raw);
+    document.getElementById('ai-loading').style.display='none';
+    const pl=document.getElementById('preview-list');pl.innerHTML='';
+    tasks.forEach(t=>{
+      const div=document.createElement('div');
+      div.className='preview-task';
+      div.innerHTML=`<div class="preview-dot"></div><div><div class="preview-name">${t.name}</div><div class="preview-meta">${fmtT(t.startMin)} · ${t.dur} min</div></div>`;
+      pl.appendChild(div);
+    });
+    const btn=document.createElement('button');
+    btn.className='btn-primary';btn.textContent='Add to today ✓';
+    btn.onclick=()=>{
+      tasks.forEach(t=>S.tasks.push({id:'t'+Date.now()+Math.random().toString(36).slice(2),name:t.name,startMin:t.startMin,dur:t.dur,done:false}));
+      save();renderToday();closeModal('add-modal');
+    };
+    pl.appendChild(btn);
+    document.getElementById('ai-preview').style.display='block';
+  }catch(err){
+    document.getElementById('ai-loading').style.display='none';
+    alert('Could not generate schedule. Check your connection and try again.');
+  }
+  document.getElementById('gen-btn').disabled=false;
+}
+
+function renderProgress(){
+  const days=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const ti=new Date().getDay();
+  const wr=document.getElementById('week-row');wr.innerHTML='';
+  for(let i=0;i<7;i++){
+    const isT=i===ti;
+    const h=(S.history||[])[( S.history||[]).length-7+i];
+    let cls='wday-dot';
+    const done=isT?S.tasks.filter(t=>t.done).length:(h?.done||0);
+    const total=isT?S.tasks.length:(h?.total||0);
+    if(isT){cls+=' ring';if(total>0&&done===total)cls='wday-dot full';else if(done>0)cls='wday-dot part ring';}
+    else if(total>0){cls=done===total?'wday-dot full':'wday-dot part';}
+    wr.innerHTML+=`<div class="wday"><div class="wday-l">${days[i]}</div><div class="${cls}">${done||''}</div></div>`;
+  }
+  const bt=document.getElementById('bar-tasks');bt.innerHTML='';
+  const bw=document.getElementById('bar-wasted');bw.innerHTML='';
+  for(let i=0;i<7;i++){
+    const isT=i===ti;
+    const h=(S.history||[])[(S.history||[]).length-7+i];
+    const done=isT?S.tasks.filter(t=>t.done).length:(h?.done||0);
+    const total=isT?S.tasks.length:(h?.total||0);
+    const w=isT?getWasted():(h?.wasted||0);
+    const pct=total>0?Math.round(done/total*100):0;
+    const col=pct===100?'var(--green)':pct>0?'var(--amber)':'var(--bg3)';
+    bt.innerHTML+=`<div class="bar-row"><span class="bar-lbl">${days[i]}</span><div class="bar-out"><div class="bar-in" style="width:${pct}%;background:${col}">${pct>15?pct+'%':''}</div></div></div>`;
+    const wp=Math.min(100,Math.round(w/4*100));
+    bw.innerHTML+=`<div class="bar-row"><span class="bar-lbl">${days[i]}</span><div class="bar-out"><div class="bar-in" style="width:${wp}%;background:var(--red)">${w>0?w+'h':''}</div></div></div>`;
+  }
+}
+
+function switchScreen(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('screen-'+s).classList.add('active');
+  document.getElementById('tab-'+s).classList.add('active');
+  document.getElementById('add-fab').style.display=s==='today'?'flex':'none';
+  if(s==='progress')renderProgress();
+}
+
+renderToday();
+setInterval(()=>{renderToday();if(document.getElementById('screen-progress').classList.contains('active'))renderProgress();},60000);
+</script>
+</body>
+</html>
